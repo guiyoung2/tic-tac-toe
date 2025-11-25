@@ -1,0 +1,388 @@
+# Tic-Tac-Toe 게임 개발 계획
+
+## 참조 프로젝트
+- SideProject--tic-tac-toe (주요 참조 - 2차원 배열, 턴 기반)
+- React 공식 문서 예제 (히스토리 기능 참조)
+
+## 참조할 주요 요소
+✅ 2차원 배열로 보드 관리: `[[null, null, null], ...]`
+✅ 턴 기반 상태 관리: `gameTurns = [{ square: { i, j }, player: "X" }, ...]`
+✅ 히스토리 기능 (시간 여행 - React 공식 예제 참조)
+✅ 플레이어 이름 편집 가능
+✅ 좌표 객체 방식: `square: { i, j }`
+✅ 동적 보드 렌더링: `map` 사용
+
+---
+
+## 개발 단계 (React 공식 튜토리얼 방식 + 2차원 배열/턴 기반)
+
+### 1단계: 정적 UI 만들기 (Static Version)
+**목표:** UI 구조만 먼저 만들기 (상호작용 없음)
+
+**파일:** `src/App.jsx` (하나의 파일에 모든 것)
+
+- [ ] GameBoard 컴포넌트 정의
+  - 2차원 배열 초기화: `const board = [[null, null, null], [null, null, null], [null, null, null]]`
+  - 동적 렌더링: `board.map((row, i) => row.map((cell, j) => ...))`
+  - 하드코딩된 값 표시 (예: 첫 번째 칸에 "X", 두 번째 칸에 "O" 등)
+  - 버튼은 있지만 클릭 이벤트 없음
+
+- [ ] Player 컴포넌트 정의 (2개)
+  - 플레이어 이름만 표시: "Player 1 (X)", "Player 2 (O)"
+  - 하이라이트 없음
+
+- [ ] App 컴포넌트에서 조합
+  - GameBoard 렌더링
+  - Player 2개 렌더링
+
+**특징:**
+- 클릭 이벤트 없음
+- 상태 관리 없음 (`useState` 사용 안 함)
+- 단순히 UI 구조만 확인
+- 2차원 배열 구조로 보드 표시
+
+---
+
+### 2단계: 상호작용 추가 (Adding Interactivity)
+**목표:** 클릭 시 값이 변경되도록 만들기
+
+**파일:** `src/App.jsx` (같은 파일 수정)
+
+- [ ] GameBoard 내부에 각 칸마다 useState 추가 (임시)
+  - 2차원 배열 대신 각 칸이 독립적인 상태
+  - 예: `const [cell00, setCell00] = useState(null)`, `const [cell01, setCell01] = useState(null)` 등
+  - 또는 2차원 배열 상태: `const [board, setBoard] = useState([[null, null, null], ...])`
+  - 클릭 시 해당 칸에 "X" 또는 "O" 표시
+  - 이미 채워진 칸은 무시
+
+**특징:**
+- 각 칸이 독립적으로 상태 관리 (또는 2차원 배열 상태)
+- 클릭하면 값이 변경됨
+- 아직 승리 조건 없음
+- 플레이어 턴 전환 없음 (항상 X만 표시하거나 랜덤)
+
+---
+
+### 3단계: 상태 끌어올리기 (Lifting State Up)
+**목표:** App 컴포넌트에서 상태 관리, 턴 기반으로 변경
+
+**파일:** `src/App.jsx` (같은 파일 수정)
+
+- [ ] GameBoard의 상태를 App으로 이동
+- [ ] gameTurns 상태 추가: `const [gameTurns, setGameTurns] = useState([])`
+  - 턴 기록 형식: `[{ square: { i, j }, player: "X" }, ...]`
+- [ ] handleSelectSquare(i, j) 함수 구현
+  - 현재 플레이어 계산 (deriveActivePlayer - 나중에 함수로 분리)
+  - 새로운 턴 추가: `setGameTurns([...gameTurns, { square: { i, j }, player: "X" }])`
+- [ ] GameBoard는 props로 gameTurns와 handleSelectSquare 받음
+- [ ] GameBoard에서 gameTurns를 2차원 배열로 변환하여 표시
+  ```jsx
+  const gameState = [[null, null, null], [null, null, null], [null, null, null]]
+  gameTurns.forEach(({ square, player }) => {
+    gameState[square.i][square.j] = player
+  })
+  ```
+- [ ] 플레이어 턴 전환 구현 (X → O → X)
+
+**특징:**
+- App이 모든 게임 상태를 관리
+- GameBoard는 순수 컴포넌트 (props만 받음)
+- 턴 기반 상태 관리 시작
+- 2차원 배열로 보드 표시
+
+---
+
+### 4단계: 게임 로직 추가
+**목표:** 승리 조건, 무승부 판정 구현
+
+**파일 생성:**
+- [ ] `src/utils/winning-combinations.js` 생성
+  - WINNING_COMBINATIONS 배열 정의
+  - 8가지 승리 조합 (가로 3, 세로 3, 대각선 2)
+  - 좌표 객체 형식: `{ row, column }`
+  - 예: `[{ row: 0, column: 0 }, { row: 0, column: 1 }, { row: 0, column: 2 }]`
+
+- [ ] `src/utils/gameLogic.js` 생성
+  - `checkWinner(gameTurns)` 함수
+    - gameTurns를 2차원 배열로 변환
+    - 승리 조합 확인 (WINNING_COMBINATIONS 사용)
+    - 무승부 확인: `gameTurns.length === 9 && !winner`
+    - 반환값: `'X'`, `'O'`, `'draw'`, `null`
+  - `deriveActivePlayer(gameTurns)` 함수
+    - 현재 활성 플레이어 계산
+    - 반환값: `'X'` 또는 `'O'`
+
+**파일 수정:**
+- [ ] `src/App.jsx` 수정
+  - gameLogic 함수 import
+  - `deriveActivePlayer(gameTurns)`로 활성 플레이어 계산
+  - `checkWinner(gameTurns)`로 승자 확인
+  - 승리/무승부 시 게임 중단
+  - GameOver 컴포넌트 조건부 렌더링 (나중에 만들 예정)
+
+**특징:**
+- 게임 로직이 별도 파일로 분리
+- 승리/무승부 판정 작동
+- 턴 기반으로 승리 조건 확인
+
+---
+
+### 5단계: 게임 종료 및 재시작
+**목표:** 게임 종료 메시지, 재시작 기능
+
+**파일:** `src/App.jsx` (같은 파일에 컴포넌트 정의)
+
+- [ ] GameOver 컴포넌트 정의
+  - 게임 종료 메시지 표시
+  - 승자 또는 무승부 표시
+  - 재시작 버튼
+- [ ] handleRestart 함수 구현
+  - `setGameTurns([])`로 게임 초기화
+- [ ] App에서 GameOver 조건부 렌더링
+  - `result && <GameOver ... />`
+
+**특징:**
+- 게임 종료 시 메시지 표시
+- 재시작 가능
+
+---
+
+### 6단계: 플레이어 관리 추가
+**목표:** 플레이어 이름 편집 기능
+
+**파일:** `src/App.jsx` (같은 파일에 컴포넌트 정의)
+
+- [ ] players 상태 추가: `const [players, setPlayers] = useState({ X: 'Player 1', O: 'Player 2' })`
+- [ ] Player 컴포넌트 정의
+  - 플레이어 이름 표시
+  - 이름 편집 기능 (Edit/Save 버튼)
+  - 활성 플레이어 하이라이트: `isActive={activePlayer === 'X'}`
+  - 내부 상태: `const [playerName, setPlayerName] = useState(initialName)`
+  - 내부 상태: `const [isEditMode, setIsEditMode] = useState(false)`
+- [ ] handlePlayerNameChange 함수 구현
+- [ ] App에서 Player 2개 렌더링
+- [ ] GameOver에 players 전달
+
+**특징:**
+- 플레이어 이름 커스터마이징 가능
+- 활성 플레이어 시각적 표시
+
+---
+
+### 7단계: 게임 로그 추가
+**목표:** 게임 진행 기록 표시
+
+**파일:** `src/App.jsx` (같은 파일에 컴포넌트 정의)
+
+- [ ] Log 컴포넌트 정의
+  - 게임 턴 로그 표시
+  - 각 턴의 좌표와 플레이어 표시
+  - 예: "X selected 0,1"
+- [ ] App에서 Log 컴포넌트 렌더링
+  - `<Log gameTurns={gameTurns} />`
+
+**특징:**
+- 게임 진행 내역 확인 가능
+
+---
+
+### 8단계: 히스토리 기능 추가 (시간 여행)
+**목표:** 게임 히스토리 저장 및 되돌아가기
+
+**파일:** `src/App.jsx` (같은 파일에 컴포넌트 정의)
+
+- [ ] currentTurnIndex 상태 추가: `const [currentTurnIndex, setCurrentTurnIndex] = useState(0)`
+- [ ] handleJumpTo(turnIndex) 함수 구현
+  - `setCurrentTurnIndex(turnIndex)`
+  - gameTurns를 슬라이싱하지 않고, 표시만 변경
+- [ ] handleSelectSquare 수정
+  - 현재 턴 이후의 히스토리 제거 (분기 처리)
+  - `const newTurns = gameTurns.slice(0, currentTurnIndex + 1)`
+  - `setGameTurns([...newTurns, newTurn])`
+  - `setCurrentTurnIndex(newTurns.length)`
+- [ ] GameBoard에서 currentTurnIndex 기준으로 gameTurns 슬라이싱
+  - `const currentTurns = gameTurns.slice(0, currentTurnIndex + 1)`
+- [ ] History 컴포넌트 정의
+  - 히스토리 목록 표시
+  - 특정 턴으로 이동 버튼
+  - 현재 턴 하이라이트
+- [ ] App에서 History 컴포넌트 렌더링
+
+**특징:**
+- 특정 턴으로 되돌아가기 가능
+- 히스토리 분기 처리 (새로운 턴 추가 시 이전 히스토리 제거)
+- 턴 기반 히스토리 관리
+
+---
+
+### 9단계: 컴포넌트 분리 (선택사항)
+**목표:** 코드 정리 및 유지보수성 향상
+
+**파일 분리:**
+- [ ] `src/components/GameBoard.jsx` 생성
+  - App.jsx에서 GameBoard 컴포넌트 이동
+- [ ] `src/components/Player.jsx` 생성
+  - App.jsx에서 Player 컴포넌트 이동
+- [ ] `src/components/Log.jsx` 생성
+  - App.jsx에서 Log 컴포넌트 이동
+- [ ] `src/components/GameOver.jsx` 생성
+  - App.jsx에서 GameOver 컴포넌트 이동
+- [ ] `src/components/History.jsx` 생성
+  - App.jsx에서 History 컴포넌트 이동
+
+**파일 수정:**
+- [ ] `src/App.jsx` 수정
+  - 분리된 컴포넌트 import
+  - App은 상태 관리와 컴포넌트 조합만 담당
+
+**특징:**
+- 각 컴포넌트가 독립적인 파일
+- 코드 가독성 향상
+- 재사용성 향상
+
+---
+
+### 10단계: 스타일링
+**목표:** UI 디자인 적용
+
+**파일 수정/생성:**
+- [ ] `src/App.css` 또는 `src/index.css` 수정
+  - 게임 보드 스타일 (2차원 그리드)
+  - 플레이어 카드 스타일
+  - 활성 플레이어 하이라이트
+  - 히스토리 목록 스타일
+  - 게임 종료 모달 스타일
+  - 반응형 디자인 (선택사항)
+
+**특징:**
+- 사용자 경험 향상
+- 시각적 피드백 제공
+
+---
+
+### 11단계: 테스트 및 개선
+**목표:** 버그 수정 및 최적화
+
+- [ ] 기본 게임 플레이 테스트
+  - 승리 조건 확인 (가로, 세로, 대각선)
+  - 무승부 확인
+  - 잘못된 클릭 방지 확인
+  - 게임 재시작 확인
+
+- [ ] 플레이어 관리 테스트
+  - 이름 편집 기능
+  - 활성 플레이어 표시
+
+- [ ] 히스토리 기능 테스트
+  - 특정 턴으로 이동
+  - 이동 후 게임 계속 진행
+  - 히스토리 분기 처리
+  - 현재 턴 하이라이트
+
+- [ ] 게임 로그 테스트
+  - 모든 턴이 정확히 기록되는지
+
+- [ ] 버그 수정 및 최적화
+  - 성능 최적화 (필요시)
+  - 코드 리팩토링
+
+---
+
+## 파일 생성 순서 요약
+
+### 초기 단계 (하나의 파일에 모든 것 - React 공식 방식)
+```
+1. src/App.jsx
+   - 모든 컴포넌트와 로직을 하나의 파일에 작성
+   - 점진적으로 기능 추가
+   - 2차원 배열과 턴 기반 방식 사용
+```
+
+### 중간 단계 (유틸 함수 분리)
+```
+2. src/utils/winning-combinations.js
+3. src/utils/gameLogic.js
+```
+
+### 후반 단계 (컴포넌트 분리 - 선택사항)
+```
+4. src/components/GameBoard.jsx
+5. src/components/Player.jsx
+6. src/components/Log.jsx
+7. src/components/GameOver.jsx
+8. src/components/History.jsx
+```
+
+---
+
+## 구현 시 주의사항
+
+### 상태 관리
+- gameTurns는 불변성 유지 (새 배열 생성)
+- 턴 기반: `[{ square: { i, j }, player: "X" }, ...]`
+- 히스토리 이동 시 currentTurnIndex로 슬라이싱
+- 새로운 턴 추가 시 이전 히스토리 제거 (분기 처리)
+
+### 좌표 시스템
+- GameBoard: `{ i, j }` 사용
+- winning-combinations: `{ row, column }` 사용
+- 변환 시 주의: `i = row`, `j = column`
+
+### 2차원 배열 처리
+- gameTurns를 2차원 배열로 변환: `gameState[square.i][square.j] = player`
+- 동적 렌더링: `gameState.map((row, i) => row.map((cell, j) => ...))`
+
+### 히스토리 분기 처리
+- 특정 턴으로 이동 후 새로운 턴 추가 시
+- 해당 턴 이후의 히스토리는 삭제
+- `gameTurns.slice(0, currentTurnIndex + 1)` 패턴 사용
+
+### 점진적 개발
+- 처음에는 모든 것을 App.jsx에 작성
+- 작동하는 것을 확인한 후 분리
+- 한 번에 하나의 기능만 추가
+- React 공식 튜토리얼의 "점진적 복잡도 증가" 원칙 따르기
+
+---
+
+## 체크리스트 요약
+
+### 필수 기능
+- [ ] 2차원 배열 보드
+- [ ] 턴 기반 상태 관리
+- [ ] 플레이어 이름 편집
+- [ ] 게임 로그
+- [ ] 승자 판정
+- [ ] 무승부 처리
+- [ ] 게임 재시작
+
+### 추가 기능 (히스토리)
+- [ ] 히스토리 목록 표시
+- [ ] 특정 턴으로 이동
+- [ ] 히스토리 분기 처리
+
+---
+
+## 예상 개발 시간
+- 1-3단계 (기본 게임): 2-3시간
+- 4-7단계 (게임 로직 및 기능): 2-3시간
+- 8단계 (히스토리): 1-2시간
+- 9-10단계 (분리 및 스타일링): 1-2시간
+- 11단계 (테스트): 1시간
+
+**총 예상 시간: 7-11시간**
+
+---
+
+## React 공식 튜토리얼과의 차이점
+
+| 항목 | React 공식 | 현재 계획 |
+|------|-----------|----------|
+| **보드 구조** | 1차원 배열 `[null, ...]` | 2차원 배열 `[[null, ...], ...]` ✅ |
+| **상태 관리** | 보드 상태 저장 `history = [board1, ...]` | 턴 기록 `gameTurns = [{square, player}, ...]` ✅ |
+| **접근 방식** | 점진적 기능 추가 | 점진적 기능 추가 ✅ |
+| **파일 구조** | 단일 파일 → 분리 | 단일 파일 → 분리 ✅ |
+| **플레이어 관리** | 없음 | 이름 편집 가능 ✅ |
+| **게임 로그** | 없음 | 있음 ✅ |
+
+**핵심:** React 공식 튜토리얼의 점진적 접근 방식을 따르되, 2차원 배열과 턴 기반 방식을 사용합니다!
