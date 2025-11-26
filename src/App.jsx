@@ -1,79 +1,101 @@
 import { useState } from "react";
 import "./App.css";
+import { checkWinner } from "./util/winning";
+import GameBoard from "./components/GameBoard";
+import Log from "./components/Log";
+import History from "./components/History";
+import Player from "./components/Player";
+import { getCurrentPlayer, isPlayerActive } from "./util/gameLogic";
 
-// 2차원 배열로 보드 초기화
-const initialGameBoard = [
-  [null, null, null],
-  [null, null, null],
-  [null, null, null],
-];
-
-// GameBoard 컴포넌트 정의 (정적 UI - 1단계)
-const GameBoard = ({ gameTurns, handleClickBoard }) => {
-  // gameTurns를 2차원 배열로 변환
-  const gameState = initialGameBoard.map((row) => [...row]);
-
-  gameTurns.forEach(({ square, player }) => {
-    gameState[square.i][square.j] = player;
-  });
-
-  const onCilckBoard = (i, j) => {
-    handleClickBoard(i, j);
-  };
-
-  return (
-    <div className="game-board">
-      {gameState.map((row, i) => (
-        <div key={i}>
-          <div>
-            {row.map((cell, j) => (
-              <div key={j}>
-                <button onClick={() => onCilckBoard(i, j)}>{cell || ""}</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+const InitPlayerName = {
+  X: "Player 1",
+  O: "Player 2",
 };
-
-// Player 컴포넌트 정의 (정적 UI - 1단계)
-function Player({ name, symbol }) {
-  return (
-    <div>
-      <span>
-        {name} ({symbol})
-      </span>
-    </div>
-  );
-}
 
 function App() {
   const [gameTurns, setGameTurns] = useState([]);
+  const [playerName, setPlayerName] = useState(InitPlayerName);
+  const [history, setHistory] = useState([[]]);
+  const [turnIndex, setTurnIndex] = useState(0);
+  const currentTurns = history[turnIndex] || [];
+  const winner = checkWinner(currentTurns);
+
+  const onChangeName = (symbol, name) => {
+    setPlayerName((prev) => ({
+      ...prev,
+      [symbol]: name,
+    }));
+  };
+
+  const handleJumpTo = (index) => {
+    setTurnIndex(index);
+    setGameTurns(history[index]);
+  };
 
   const handleClickBoard = (i, j) => {
-    setGameTurns((prevTurns) => {
-      // 이미 채워진 칸 체크
-      const isAlreadyFilled = prevTurns.some(
-        (turn) => turn.square.i === i && turn.square.j === j
-      );
-      if (isAlreadyFilled) return prevTurns;
+    if (winner) return;
 
-      // 현재 플레이어 계산 (prevTurns 기준)
-      const currentPlayer = prevTurns.length % 2 === 0 ? "X" : "O";
+    const newTurns = currentTurns.slice(0, turnIndex + 1);
+    // 이미 채워진 칸 체크
+    const isAlreadyFilled = newTurns.some(
+      (turn) => turn.square.i === i && turn.square.j === j
+    );
+    if (isAlreadyFilled) return;
 
-      return [...prevTurns, { square: { i, j }, player: currentPlayer }];
+    // 다음 턴의 플레이어 계산
+    const nextPlayer = getCurrentPlayer(newTurns);
+
+    const updatedTurns = [
+      ...newTurns,
+      { square: { i, j }, player: nextPlayer },
+    ];
+
+    setHistory((prevHistory) => {
+      const newHistory = prevHistory.slice(0, turnIndex + 1);
+      return [...newHistory, updatedTurns];
     });
+    setTurnIndex((prevIndex) => prevIndex + 1);
+    setGameTurns(updatedTurns);
+  };
+
+  const currentPlayer = getCurrentPlayer(currentTurns);
+  const isXActive = isPlayerActive("X", currentPlayer, winner);
+  const isOActive = isPlayerActive("O", currentPlayer, winner);
+
+  const handleReset = () => {
+    setGameTurns([]);
+    setHistory([[]]);
+    setTurnIndex(0);
   };
 
   return (
     <main>
-      <div id="players">
-        <Player name="Player 1" symbol="X" />
-        <Player name="Player 2" symbol="O" />
+      <div id="players" className={currentTurns.length > 0 ? "active" : ""}>
+        <Player
+          onChangeName={onChangeName}
+          name={playerName.X}
+          symbol="X"
+          isActive={isXActive}
+        />
+        <Player
+          onChangeName={onChangeName}
+          name={playerName.O}
+          symbol="O"
+          isActive={isOActive}
+        />
       </div>
-      <GameBoard gameTurns={gameTurns} handleClickBoard={handleClickBoard} />
+      <GameBoard gameTurns={currentTurns} handleClickBoard={handleClickBoard} />
+      <div className="result-container">
+        {winner === "draw" && <div>Draw!</div>}
+        {winner && winner !== "draw" && <div>Winner: {winner}</div>}
+      </div>
+      <button onClick={handleReset}>Reset</button>
+      <Log gameTurns={currentTurns} />
+      <History
+        history={history}
+        turnIndex={turnIndex}
+        onJumpTo={handleJumpTo}
+      />
     </main>
   );
 }
