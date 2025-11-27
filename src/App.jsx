@@ -69,34 +69,46 @@ function App() {
   };
 
   return (
-    <main>
-      <div id="players" className={currentTurns.length > 0 ? "active" : ""}>
-        <Player
-          onChangeName={onChangeName}
-          name={playerName.X}
-          symbol="X"
-          isActive={isXActive}
+    <div className="app-container">
+      <div className="logo-container">
+        <img src="/tic-tac-toe_img.png" alt="logo" />
+      </div>
+      <div className="game-container">
+        <div id="players" className={currentTurns.length > 0 ? "active" : ""}>
+          <Player
+            onChangeName={onChangeName}
+            name={playerName.X}
+            symbol="X"
+            isActive={isXActive}
+          />
+          <Player
+            onChangeName={onChangeName}
+            name={playerName.O}
+            symbol="O"
+            isActive={isOActive}
+          />
+        </div>
+        <GameBoard
+          gameTurns={currentTurns}
+          handleClickBoard={handleClickBoard}
         />
-        <Player
-          onChangeName={onChangeName}
-          name={playerName.O}
-          symbol="O"
-          isActive={isOActive}
+        <div className="result-container">
+          {winner === "draw" && <div>Draw!</div>}
+          {winner && winner !== "draw" && <div>Winner: {winner}</div>}
+        </div>
+        <button className="reset-button" onClick={handleReset}>
+          Reset
+        </button>
+      </div>
+      <div className="record-container">
+        <Log gameTurns={currentTurns} />
+        <History
+          history={history}
+          turnIndex={turnIndex}
+          onJumpTo={handleJumpTo}
         />
       </div>
-      <GameBoard gameTurns={currentTurns} handleClickBoard={handleClickBoard} />
-      <div className="result-container">
-        {winner === "draw" && <div>Draw!</div>}
-        {winner && winner !== "draw" && <div>Winner: {winner}</div>}
-      </div>
-      <button onClick={handleReset}>Reset</button>
-      <Log gameTurns={currentTurns} />
-      <History
-        history={history}
-        turnIndex={turnIndex}
-        onJumpTo={handleJumpTo}
-      />
-    </main>
+    </div>
   );
 }
 

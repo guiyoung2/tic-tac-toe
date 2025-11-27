@@ -22,7 +22,7 @@ const GameBoard = ({ gameTurns, handleClickBoard }) => {
     <div className="game-board">
       {gameState.map((row, i) => (
         <div key={i}>
-          <div>
+          <div className="board-row">
             {row.map((cell, j) => (
               <div className="board-cell" key={j}>
                 <button onClick={() => onCilckBoard(i, j)}>{cell || ""}</button>
