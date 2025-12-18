@@ -1,7 +1,6 @@
 # Tic-Tac-Toe 게임 개발 계획
 
 ## 참조 프로젝트
-- SideProject--tic-tac-toe (주요 참조 - 2차원 배열, 턴 기반)
 - React 공식 문서 예제 (히스토리 기능 참조)
 
 ## 참조할 주요 요소
